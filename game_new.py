@@ -1,6 +1,7 @@
 import os
 from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi, atan, acos
 import time
+import sys
 
 # import pygame with no welcome message
 import contextlib
@@ -168,7 +169,7 @@ class Game:
         pygame.display.set_caption("Car tutorial")
         self.screen = pygame.display.set_mode((1000, 600))
         self.clock = pygame.time.Clock()
-        self.ticks = 30
+        self.ticks = 60
         self.exit = False
         self.obstacles = []
         self.player = player([int(self.screen.get_size()[0]/2),int(self.screen.get_size()[1]/2)], self.screen, 20)
@@ -178,12 +179,11 @@ class Game:
         self.best = best
         self.crash = False
 
-
-
     def initialize(self, n_obstacles):
         # Create obstacles, in random positions
         dim = self.screen.get_size()
         for n in range(n_obstacles):
+            # Make sure to spawn them far from the spawn of the player
             xr, yr = int(uniform(0,2)), int(uniform(0,2))
             if xr : x = (randint(self.obstacle_radius, int(dim[0]/3)))
             else :  x = (randint(int(dim[0]*2/3), int(dim[0])))
@@ -201,9 +201,12 @@ class Game:
                 return True
         return False
 
-    def run(self):
+    def run(self, mode):
         self.clock.tick(self.ticks)
         font = pygame.font.SysFont("monospace", 30)
+        mv = "f"
+        score = 0
+        demo = (mode == "d")
 
         while not self.exit and not self.crash:
             # Check if quit
@@ -220,27 +223,38 @@ class Game:
             for o in self.obstacles:
                 o.move()
             # move player
-            pressed = pygame.key.get_pressed()
-            if pressed[pygame.K_RIGHT]:
-                self.player.right()
-            if pressed[pygame.K_LEFT]:
-                self.player.left()
-            if self.player.move():
-                self.crash = True
-                break
+
+            if not demo:
+                if mv == "r":
+                    self.player.right()
+                if mv == "l":
+                    self.player.left()
+                if self.player.move():
+                    self.crash = True
+                    break
+            else:
+                pressed = pygame.key.get_pressed()
+                if pressed[pygame.K_RIGHT]:
+                    self.player.right()
+                if pressed[pygame.K_LEFT]:
+                    self.player.left()
+                if self.player.move():
+                    self.crash = True
+                    break
 
             # Initialize sensor positions
             self.player.create_sensors()
 
             readings = self.player.sensor_readings(self.obstacles, self.obstacle_radius)
-            self.player.print_readings(readings)
+            if mode != "d": print(readings)
+            # self.player.print_readings(readings)
 
             # Check collisions
             self.collisions()
 
             # Get the time that has passed
-            time = pygame.time.get_ticks()/1000
-            score = font.render("Score: " + str(time), 10, GREEN)
+            # time = pygame.time.get_ticks()/1000
+            sc = font.render("Score: " + str(int(score/10)), 10, GREEN)
             gen = font.render("Generation: " + str(self.generation), 10, GREEN)
             best = font.render("Best: " + str(self.best), 10, GREEN)
 
@@ -256,16 +270,29 @@ class Game:
             s.fill((255, 255, 255, 70))  # notice the alpha value in the color
             self.screen.blit(s, (10, 10))
             self.screen.blit(gen, (15,15))
-            self.screen.blit(score, (15,50))
+            self.screen.blit(sc, (15,50))
             self.screen.blit(best, (15,85))
 
             pygame.display.update()
             self.clock.tick(self.ticks)
 
-        print("Score: " + str(time))
-        if self.crash: input("Game Over - Press Enter to continue...")
+            # Increment score
+            score += 1
+
+            # Read move
+            if not demo:
+                mv = input()
+
+        print("Score: " + str(int(score/10)))
+        if self.crash: input("Game Over - Press Enter...")
 
 
 if __name__ == '__main__':
-    game = Game(20)
-    game.run()
+    if len(sys.argv) == 1:
+        game = Game(20)
+        game.run("d")
+    elif len(sys.argv) > 1:
+        game = Game(20)
+        game.run(sys.argv[1])
+    else:
+        print("Usage: python Manager.py Game.py AI.py gens")
