@@ -1,5 +1,6 @@
 import os
 from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi
+import time
 
 # import pygame with no welcome message
 import contextlib
@@ -37,7 +38,7 @@ class obstacle:
             self.velocity = Vector2(self.velocity[0], self.velocity[1]*-1)
         # Update position, turn to list
         self.pos += self.velocity
-        self.pos = [int(self.pos[0]), int(self.pos[1])]
+        self.pos = [(self.pos[0]), (self.pos[1])]
 
 class player:
     pos = [0, 0]
@@ -61,16 +62,17 @@ class player:
 
     def move(self):
         # Check if about to hit frame, if so change velocity direction
+        crash = False
         if self.pos[0]+self.velocity[0] <= 20 or self.pos[0]+self.velocity[0] >= 980:
-            print("Dead")
             self.velocity = Vector2(self.velocity[0]*-1, self.velocity[1])
+            crash = True
         if self.pos[1]+self.velocity[1] <= 20 or self.pos[1]+self.velocity[1] >= 580:
-            print("Dead")
-
             self.velocity = Vector2(self.velocity[0], self.velocity[1]*-1)
+            crash = True
         # Update position, turn to list
         self.pos += self.velocity
         self.pos = [(self.pos[0]), (self.pos[1])]
+        return crash
 
 
 class Game:
@@ -97,6 +99,12 @@ class Game:
             ob.rand_dir()
             self.obstacles.append(ob)
 
+    def collisions(self):
+        for ob in self.obstacles:
+            dis = hypot(self.player.pos[0]-ob.pos[0], self.player.pos[1]-ob.pos[1])
+            if dis <= 40:
+                return True
+        return False
 
     def run(self):
         self.clock.tick(self.ticks)
@@ -107,6 +115,9 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.exit = True
 
+            if self.collisions():
+                print("Dead")
+
             # move obstacles
             for o in self.obstacles:
                 o.move()
@@ -116,25 +127,29 @@ class Game:
                 self.player.right()
             if pressed[pygame.K_LEFT]:
                 self.player.left()
-            self.player.move()
+            if self.player.move():
+                print("Dead")
+
+            # Check collisions
+            self.collisions()
 
             # Draw
             self.screen.fill(BLACK)
             for o in self.obstacles:
-                pygame.draw.circle(self.screen, RED, o.pos, 20)
+                o_pos = [int(o.pos[0]), int(o.pos[1])]
+                pygame.draw.circle(self.screen, RED, o_pos, 20)
             player_pos = [int(self.player.pos[0]), int(self.player.pos[1])]
             player_vel = [(self.player.velocity[0]), (self.player.velocity[1])]
             pygame.draw.circle(self.screen, BLUE, player_pos, 20)
-            pygame.draw.arc(self.screen, WHITE, (player_pos[0], player_pos[1], 20, 20), player_vel[0], player_vel[1], 2)
+            # Draw menu
+            s = pygame.Surface((200, 100), pygame.SRCALPHA)  # per-pixel alpha
+            s.fill((255, 255, 255, 70))  # notice the alpha value in the color
+            self.screen.blit(s, (10, 10))
 
             pygame.display.update()
             self.clock.tick(self.ticks)
 
 
-
-
-
-
 if __name__ == '__main__':
-    game = Game(8)
+    game = Game(20)
     game.run()
