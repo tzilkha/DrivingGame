@@ -20,6 +20,7 @@ class obstacle:
     velocity = None
     speed = 3
     screen = None
+    radius = 20
 
     def __init__(self, pos, screen):
         self.pos = pos
@@ -79,9 +80,9 @@ class player:
         return crash
 
     def create_sensors(self):
-        self.sensors = []
+        # Set relative distance of sensors
         d = 8
-
+        self.sensors = []
         self.sensors.append(self.__sens_pos(0, d))
         self.sensors.append(self.__sens_pos(0, 2*d))
         self.sensors.append(self.__sens_pos(45, sqrt(2)*d))
@@ -97,11 +98,30 @@ class player:
         self.sensors.append(self.__sens_pos(degrees(atan(2)), sqrt(5)*d))
         self.sensors.append(self.__sens_pos(degrees(atan(-2)), sqrt(5)*d))
 
+    # Return position of a sensor given angle deviation from movement and distance
     def __sens_pos(self, angle, length):
         point = Vector2(self.pos)
         point += self.velocity.rotate(angle) * length
         point = [int(point[0]), int(point[1])]
         return point
+
+    def sensor_readings(self, obstacle_locations, r):
+        reading = [False for x in range(len(self.sensors))]
+        for x in range(len(reading)):
+            sensor = self.sensors[x]
+            if sensor[0] <= 0 or sensor[0] >= 1000:
+                reading[x] = True
+            elif sensor[1] <= 0 or sensor[1] >= 600:
+                reading[x] = True
+            if not reading[x]:
+                for ob in obstacle_locations:
+                    ob = ob.pos
+                    if hypot(ob[0]-sensor[0], ob[1]-sensor[1])<=r:
+                        reading[x] = True
+                        break
+        return reading
+
+
 
 
     def draw(self):
@@ -112,7 +132,7 @@ class player:
         arc_angle = radians((self.velocity.as_polar()[1] * (-1)) % 360)
         pygame.draw.arc(self.screen, WHITE, arc_setting, arc_angle - pi / 4, arc_angle + pi / 4, 2)
         for p in self.sensors:
-            pygame.draw.circle(self.screen, WHITE, p, 2)
+            pygame.draw.circle(self.screen, WHITE, p, 1)
 
 
 class Game:
@@ -122,13 +142,14 @@ class Game:
         pygame.display.set_caption("Car tutorial")
         self.screen = pygame.display.set_mode((1000, 600))
         self.clock = pygame.time.Clock()
-        self.ticks =20
+        self.ticks = 60
         self.exit = False
         self.obstacles = []
 
         self.initialize(n_obstacles)
 
         self.player = player([500,300], self.screen)
+        self.obstacle_radius = 20
 
 
     def initialize(self, n_obstacles):
@@ -172,6 +193,8 @@ class Game:
 
             # Initialize sensor positions
             self.player.create_sensors()
+
+            print(self.player.sensor_readings(self.obstacles, self.obstacle_radius))
 
             # Check collisions
             self.collisions()
