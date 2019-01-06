@@ -1,5 +1,5 @@
 import os
-from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi
+from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi, atan
 import time
 
 # import pygame with no welcome message
@@ -19,12 +19,12 @@ class obstacle:
     pos = [0, 0]
     velocity = None
     speed = 3
-    bounds = None
+    screen = None
 
-    def __init__(self, pos, bounds):
+    def __init__(self, pos, screen):
         self.pos = pos
         self.rand_dir
-        self.bounds = bounds
+        self.screen = screen
 
     def rand_dir(self):
         # Set random direction vector of magnitude speed
@@ -40,15 +40,19 @@ class obstacle:
         self.pos += self.velocity
         self.pos = [(self.pos[0]), (self.pos[1])]
 
+    def draw(self):
+        o_pos = [int(self.pos[0]), int(self.pos[1])]
+        pygame.draw.circle(self.screen, RED, o_pos, 20)
+
 class player:
     pos = [0, 0]
     velocity = Vector2()
     speed = 5
-    bounds = None
+    screen = None
 
-    def __init__(self, pos, bounds):
+    def __init__(self, pos, screen):
         self.pos = pos
-        self.bounds = bounds
+        self.screen = screen
         self.velocity = Vector2(self.speed, 0).rotate(randrange(360))
 
 
@@ -73,6 +77,14 @@ class player:
         self.pos += self.velocity
         self.pos = [(self.pos[0]), (self.pos[1])]
         return crash
+
+    def draw(self):
+        # Draw blue circle and arc indicating position of movement
+        player_pos = [int(self.pos[0]), int(self.pos[1])]
+        pygame.draw.circle(self.screen, BLUE, player_pos, 20)
+        arc_setting = [int(self.pos[0]) - 20, int(self.pos[1]) - 20, 40, 40]
+        arc_angle = radians((self.velocity.as_polar()[1] * (-1)) % 360)
+        pygame.draw.arc(self.screen, WHITE, arc_setting, arc_angle - pi / 4, arc_angle + pi / 4, 2)
 
 
 class Game:
@@ -136,16 +148,13 @@ class Game:
             # Draw
             self.screen.fill(BLACK)
             for o in self.obstacles:
-                o_pos = [int(o.pos[0]), int(o.pos[1])]
-                pygame.draw.circle(self.screen, RED, o_pos, 20)
-            player_pos = [int(self.player.pos[0]), int(self.player.pos[1])]
-            player_vel = [(self.player.velocity[0]), (self.player.velocity[1])]
-            pygame.draw.circle(self.screen, BLUE, player_pos, 20)
+                o.draw()
+            self.player.draw()
+
             # Draw menu
             s = pygame.Surface((200, 100), pygame.SRCALPHA)  # per-pixel alpha
             s.fill((255, 255, 255, 70))  # notice the alpha value in the color
             self.screen.blit(s, (10, 10))
-
             pygame.display.update()
             self.clock.tick(self.ticks)
 
