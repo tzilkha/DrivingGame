@@ -1,5 +1,5 @@
 import os
-from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi, atan
+from math import tan, radians, degrees, copysign, hypot, sqrt, sin, cos, pi, atan, acos
 import time
 
 # import pygame with no welcome message
@@ -49,20 +49,20 @@ class player:
     velocity = Vector2()
     speed = 5
     screen = None
+    sensors = []
 
     def __init__(self, pos, screen):
         self.pos = pos
         self.screen = screen
         self.velocity = Vector2(self.speed, 0).rotate(randrange(360))
 
-
     def left(self):
         # Set random direction vector of magnitude speed
-        self.velocity = self.velocity.rotate(-30)
+        self.velocity = self.velocity.rotate(-20)
 
     def right(self):
         # Set random direction vector of magnitude speed
-        self.velocity = self.velocity.rotate(30)
+        self.velocity = self.velocity.rotate(20)
 
     def move(self):
         # Check if about to hit frame, if so change velocity direction
@@ -78,6 +78,32 @@ class player:
         self.pos = [(self.pos[0]), (self.pos[1])]
         return crash
 
+    def create_sensors(self):
+        self.sensors = []
+        d = 8
+
+        self.sensors.append(self.__sens_pos(0, d))
+        self.sensors.append(self.__sens_pos(0, 2*d))
+        self.sensors.append(self.__sens_pos(45, sqrt(2)*d))
+        self.sensors.append(self.__sens_pos(45, sqrt(8)*d))
+        self.sensors.append(self.__sens_pos(-45, sqrt(2)*d))
+        self.sensors.append(self.__sens_pos(-45, sqrt(8)*d))
+        self.sensors.append(self.__sens_pos(90, d))
+        self.sensors.append(self.__sens_pos(90, 2*d))
+        self.sensors.append(self.__sens_pos(-90, d))
+        self.sensors.append(self.__sens_pos(-90, 2*d))
+        self.sensors.append(self.__sens_pos(degrees(atan(0.5)), sqrt(5)*d))
+        self.sensors.append(self.__sens_pos(degrees(atan(-0.5)), sqrt(5)*d))
+        self.sensors.append(self.__sens_pos(degrees(atan(2)), sqrt(5)*d))
+        self.sensors.append(self.__sens_pos(degrees(atan(-2)), sqrt(5)*d))
+
+    def __sens_pos(self, angle, length):
+        point = Vector2(self.pos)
+        point += self.velocity.rotate(angle) * length
+        point = [int(point[0]), int(point[1])]
+        return point
+
+
     def draw(self):
         # Draw blue circle and arc indicating position of movement
         player_pos = [int(self.pos[0]), int(self.pos[1])]
@@ -85,6 +111,8 @@ class player:
         arc_setting = [int(self.pos[0]) - 20, int(self.pos[1]) - 20, 40, 40]
         arc_angle = radians((self.velocity.as_polar()[1] * (-1)) % 360)
         pygame.draw.arc(self.screen, WHITE, arc_setting, arc_angle - pi / 4, arc_angle + pi / 4, 2)
+        for p in self.sensors:
+            pygame.draw.circle(self.screen, WHITE, p, 2)
 
 
 class Game:
@@ -141,6 +169,9 @@ class Game:
                 self.player.left()
             if self.player.move():
                 print("Dead")
+
+            # Initialize sensor positions
+            self.player.create_sensors()
 
             # Check collisions
             self.collisions()
